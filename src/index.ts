@@ -9,20 +9,22 @@ import {
 	PublicKey,
 	Transaction,
 	VersionedTransaction,
+	Keypair,
 } from '@solana/web3.js';
 import {
 	BN,
-	DriftClientConfig,
 	DriftEnv,
 	SpotMarkets,
 	getMarketsAndOraclesForSubscription,
 	DRIFT_PROGRAM_ID,
 	DriftClient,
 	BulkAccountLoader,
+	Wallet,
 } from '@drift-labs/sdk';
 
 import dotenv from 'dotenv';
 import cors from 'cors';
+import { getReferrerInfo, getTokenAddressForDepositAndWithdraw } from './utils';
 
 dotenv.config();
 
@@ -31,42 +33,13 @@ app.use(cors({ origin: '*' }));
 app.use(express.json());
 
 const BLINKS_S3_DRIFT_PUBLIC_BUCKET = process.env.BUCKET ?? '';
-// const ENDPOINT = process.env.ENDPOINT ?? '';
+const ENDPOINT = process.env.ENDPOINT ?? '';
 const DRIFT_ENV = (process.env.ENV || 'devnet') as DriftEnv;
 const PORT = process.env.PORT || 3000;
 const HOST =
 	process.env.NODE_ENV === 'development'
 		? `http://localhost:${PORT}`
 		: process.env.URL;
-
-// const { oracleInfos, perpMarketIndexes, spotMarketIndexes } =
-// 	getMarketsAndOraclesForSubscription(DRIFT_ENV);
-
-// const connection = new Connection(ENDPOINT, {
-// 	commitment: 'confirmed',
-// });
-
-// const bulkAccountLoader = new BulkAccountLoader(
-// 	connection,
-// 	'confirmed',
-// 	60 * 1000
-// );
-
-// const driftClient = new DriftClient({
-// 	connection: connection,
-// 	wallet: dummyWallet,
-// 	programID: new PublicKey(DRIFT_PROGRAM_ID),
-// 	env: DRIFT_ENV,
-// 	txVersion: 0,
-// 	userStats: false,
-// 	perpMarketIndexes: perpMarketIndexes,
-// 	spotMarketIndexes: spotMarketIndexes,
-// 	oracleInfos: oracleInfos,
-// 	accountSubscription: {
-// 		type: 'polling',
-// 		accountLoader: bulkAccountLoader,
-// 	},
-// });
 
 app.get('/blinks/deposit', (req: Request, res: Response) => {
 	const depositToken = (req.query.token ?? 'USDC') as string;
@@ -165,72 +138,97 @@ app.post('/transactions/deposit', async (req: Request, res: Response) => {
 		+amountString * depositSpotMarketConfig.precision.toNumber()
 	);
 
-	// 	const subscriptionResult = await driftClient.subscribe();
-	// 	if (!subscriptionResult) {
-	// 		return returnErrorResponse('Failed to subscribe to Drift Client');
-	// 	}
+	const { oracleInfos, perpMarketIndexes, spotMarketIndexes } =
+		getMarketsAndOraclesForSubscription(DRIFT_ENV);
+
+	const connection = new Connection(ENDPOINT, {
+		commitment: 'confirmed',
+	});
+
+	const bulkAccountLoader = new BulkAccountLoader(
+		connection,
+		'confirmed',
+		60 * 1000
+	);
+
+	const wallet = new Wallet(
+		new Keypair({
+			publicKey: authority.toBytes(),
+			secretKey: new Keypair().publicKey.toBytes(),
+		})
+	);
+
+	const driftClient = new DriftClient({
+		connection: connection,
+		wallet,
+		programID: new PublicKey(DRIFT_PROGRAM_ID),
+		env: DRIFT_ENV,
+		txVersion: 0,
+		userStats: false,
+		perpMarketIndexes: perpMarketIndexes,
+		spotMarketIndexes: spotMarketIndexes,
+		oracleInfos: oracleInfos,
+		accountSubscription: {
+			type: 'polling',
+			accountLoader: bulkAccountLoader,
+		},
+	});
+
+	const subscriptionResult = await driftClient.subscribe();
+	if (!subscriptionResult) {
+		return returnErrorResponse('Failed to subscribe to Drift Client');
+	}
 
 	const referralCode = (req.query.ref as string) ?? '';
 
-	const response = {
-		referralCode,
-		amountBn,
-		token,
+	// check if wallet has a Drift user account
+	const [userAccounts, tokenAccount, referralInfo] = await Promise.all([
+		driftClient.getUserAccountsForAuthority(authority),
+		getTokenAddressForDepositAndWithdraw(depositSpotMarketConfig, authority),
+		referralCode ? getReferrerInfo(driftClient, referralCode) : undefined,
+	]);
+
+	let txn: Transaction | VersionedTransaction;
+
+	if (userAccounts.length === 0) {
+		// if don't have Drift account, create initialize and deposit transaction
+		[txn] = await driftClient.createInitializeUserAccountAndDepositCollateral(
+			amountBn,
+			tokenAccount,
+			depositSpotMarketConfig.marketIndex,
+			0,
+			undefined,
+			undefined,
+			referralInfo, // referrer info
+			undefined,
+			{
+				computeUnits: 200_000,
+				computeUnitsPrice: 100_000,
+			}
+		);
+	} else {
+		// if have Drift account, create deposit transaction
+		const firstUserAccount = userAccounts[0];
+
+		await driftClient.switchActiveUser(firstUserAccount.subAccountId);
+
+		txn = await driftClient.createDepositTxn(
+			amountBn,
+			depositSpotMarketConfig.marketIndex,
+			tokenAccount,
+			firstUserAccount.subAccountId,
+			false,
+			{
+				computeUnits: 100_000,
+				computeUnitsPrice: 100_000,
+			}
+		);
+	}
+
+	const response: ActionsSpecPostResponse = {
+		transaction: txn.serialize().toString('base64'),
+		message: `Successfully deposited ${token}. Visit https://app.drift.trade to view your deposit.`,
 	};
-
-	// 	// check if wallet has a Drift user account
-	// 	const [userAccounts, tokenAccount, referralInfo] = await Promise.all([
-	// 		driftClient.getUserAccountsForAuthority(authority),
-	// 		UI_UTILS.getTokenAddressForDepositAndWithdraw(
-	// 			depositSpotMarketConfig,
-	// 			authority
-	// 		),
-	// 		referralCode
-	// 			? UI_UTILS.getReferrerInfo(driftClient, referralCode)
-	// 			: undefined,
-	// 	]);
-
-	// 	let txn: Transaction | VersionedTransaction;
-
-	// 	if (userAccounts.length === 0) {
-	// 		// if don't have Drift account, create initialize and deposit transaction
-	// 		[txn] = await driftClient.createInitializeUserAccountAndDepositCollateral(
-	// 			amountBn,
-	// 			tokenAccount,
-	// 			depositSpotMarketConfig.marketIndex,
-	// 			0,
-	// 			undefined,
-	// 			undefined,
-	// 			referralInfo, // referrer info
-	// 			undefined,
-	// 			{
-	// 				computeUnits: 200_000,
-	// 				computeUnitsPrice: 100_000,
-	// 			}
-	// 		);
-	// 	} else {
-	// 		// if have Drift account, create deposit transaction
-	// 		const firstUserAccount = userAccounts[0];
-
-	// 		await driftClient.switchActiveUser(firstUserAccount.subAccountId);
-
-	// 		txn = await driftClient.createDepositTxn(
-	// 			amountBn,
-	// 			depositSpotMarketConfig.marketIndex,
-	// 			tokenAccount,
-	// 			firstUserAccount.subAccountId,
-	// 			false,
-	// 			{
-	// 				computeUnits: 100_000,
-	// 				computeUnitsPrice: 100_000,
-	// 			}
-	// 		);
-	// 	}
-
-	// 	const response: ActionsSpecPostResponse = {
-	// 		transaction: bytesToBase64(txn.serialize()),
-	// 		message: `Successfully deposited ${token}. Visit https://app.drift.trade to view your deposit.`,
-	// 	};
 
 	return res.json(response);
 });
