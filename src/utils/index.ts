@@ -1,16 +1,18 @@
 import {
 	DriftClient,
+	IWallet,
 	PublicKey,
 	ReferrerInfo,
 	SpotMarketConfig,
 	WRAPPED_SOL_MINT,
 } from '@drift-labs/sdk';
 import { getAssociatedTokenAddress } from '@solana/spl-token';
+import { Keypair } from '@solana/web3.js';
 
 export const getTokenAddressForDepositAndWithdraw = async (
 	spotMarket: SpotMarketConfig,
 	authority: PublicKey
-) => {
+): Promise<PublicKey> => {
 	const isSol = spotMarket.mint.equals(WRAPPED_SOL_MINT);
 
 	return isSol
@@ -46,4 +48,31 @@ export const getReferrerInfo = async (
 	}
 
 	return referrerInfo;
+};
+
+export const createThrowawayIWallet = (walletPubKey?: PublicKey): IWallet => {
+	const newKeypair = walletPubKey
+		? new Keypair({
+				publicKey: walletPubKey.toBytes(),
+				secretKey: new Keypair().publicKey.toBytes(),
+		  })
+		: new Keypair();
+
+	const newWallet: IWallet = {
+		publicKey: newKeypair.publicKey,
+		//@ts-ignore
+		signTransaction: () => {
+			return Promise.resolve();
+		},
+		//@ts-ignore
+		signAllTransactions: () => {
+			return Promise.resolve();
+		},
+	};
+
+	return newWallet;
+};
+
+export const uint8ArrayToBase64 = (uint8Array: Uint8Array): string => {
+	return Buffer.from(uint8Array).toString('base64');
 };

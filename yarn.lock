@@ -95,15 +95,16 @@
   dependencies:
     "@jridgewell/trace-mapping" "0.3.9"
 
-"@drift-labs/sdk@^2.85.0-beta.10":
-  version "2.85.0-beta.10"
-  resolved "https://registry.yarnpkg.com/@drift-labs/sdk/-/sdk-2.85.0-beta.10.tgz#4d9565c3b8b6fac098fbbe92afbd06ba0a57e87d"
-  integrity sha512-R1nY1K9G4hpeA7YT7bsMCwx3npYQDE0UDabO67uasaiJbnQpMVca8uIQWJ4gKPM9sxR0ppC9O081oyNyOsPqEg==
+"@drift-labs/sdk@^2.86.0-beta.0":
+  version "2.86.0-beta.0"
+  resolved "https://registry.yarnpkg.com/@drift-labs/sdk/-/sdk-2.86.0-beta.0.tgz#8a5c046b904719c82facde1233cb51d4c8a6723f"
+  integrity sha512-IZI6gD+K6N9vJdPnRQnbPRw2G7kEueBli4vKiAbhgiJ0pTMlIvkXDbjVBto3jpdFuHIDPvXzq15PVZ+JNOmpGg==
   dependencies:
     "@coral-xyz/anchor" "0.28.0"
     "@ellipsis-labs/phoenix-sdk" "^1.4.2"
     "@project-serum/serum" "^0.13.38"
     "@pythnetwork/client" "2.5.3"
+    "@pythnetwork/price-service-sdk" "^1.7.1"
     "@pythnetwork/pyth-solana-receiver" "^0.7.0"
     "@solana/spl-token" "0.3.7"
     "@solana/web3.js" "1.92.3"
@@ -392,7 +393,7 @@
     assert "^2.0.0"
     buffer "^6.0.1"
 
-"@pythnetwork/price-service-sdk@>=1.6.0":
+"@pythnetwork/price-service-sdk@>=1.6.0", "@pythnetwork/price-service-sdk@^1.7.1":
   version "1.7.1"
   resolved "https://registry.yarnpkg.com/@pythnetwork/price-service-sdk/-/price-service-sdk-1.7.1.tgz#dbfc8a8c2189f526346c1f79ec3995e89b690700"
   integrity sha512-xr2boVXTyv1KUt/c6llUTfbv2jpud99pWlMJbFaHGUBoygQsByuy7WbjIJKZ+0Blg1itLZl0Lp/pJGGg8SdJoQ==
