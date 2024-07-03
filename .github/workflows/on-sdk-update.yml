@@ -1,0 +1,49 @@
+name: Deploy on sdk update
+on:
+  repository_dispatch:
+    types: [sdk-update]
+
+jobs:
+  update-sdk:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v2
+
+    - name: Setup node
+      uses: actions/setup-node@v2
+      with:
+        node-version: '18.x'
+        registry-url: 'https://registry.npmjs.org'
+
+    - name: Determine sdk version
+      id: determine-sdk-version
+      run: |
+        if [[ "${{ github.event_name }}" == "repository_dispatch" ]]; then
+          echo "SDK_VERSION=${{ github.event.client_payload.version }}" >> $GITHUB_ENV
+        else
+          # Get the current version of sdk used in package.json
+          CURRENT_VERSION=$(node -e "console.log(require('./package.json').dependencies['@drift-labs/sdk'])")
+          echo "SDK_VERSION=$CURRENT_VERSION" >> $GITHUB_ENV
+        fi
+
+    - name: Install dependencies
+      run: yarn
+
+    - name: Add specific version of sdk
+      run: yarn add @drift-labs/sdk@$SDK_VERSION
+
+    - run: yarn build
+
+    - name: Update package version
+      run: npm version patch
+
+    - name: Git commit
+      run: |
+        VERSION=$(node -e "console.log(require('./package.json').version);")
+        git config user.name "GitHub Actions"
+        git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+        git add -A
+        git commit --allow-empty -m "sdk: release v$VERSION"
+        git push origin HEAD
+
