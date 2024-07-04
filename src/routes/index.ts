@@ -31,6 +31,7 @@ import { PostHogClient } from '../posthog.js';
 import { POSTHOG_EVENTS } from '../constants/posthog.js';
 
 const BLINKS_S3_DRIFT_PUBLIC_BUCKET = process.env.BUCKET ?? '';
+const GENERIC_BLINK_IMAGE = `${BLINKS_S3_DRIFT_PUBLIC_BUCKET}/deposit-generic.webp`;
 const ENDPOINT = process.env.ENDPOINT ?? '';
 const DRIFT_ENV = (process.env.ENV || 'devnet') as DriftEnv;
 const PORT = process.env.PORT || 3000;
@@ -51,7 +52,7 @@ router.get('/', (req: Request, res: Response) => {
 	res.redirect(DRIFT_MAIN_APP_URL);
 });
 
-router.get('/blinks/deposit', (req: Request, res: Response) => {
+router.get('/blinks/deposit', async (req: Request, res: Response) => {
 	const depositToken = (req.query.token ?? 'USDC') as string;
 	const referralCode = (req.query.ref ?? undefined) as string;
 
@@ -73,13 +74,16 @@ router.get('/blinks/deposit', (req: Request, res: Response) => {
 		return res.status(400).json({ message: 'Invalid token' });
 	}
 
-	const icon = `${BLINKS_S3_DRIFT_PUBLIC_BUCKET}/deposit-${
-		depositToken === 'USDC'
-			? 'usdc'
-			: depositToken === 'JLP'
-			? 'jlp'
-			: 'generic'
-	}.webp`;
+	let icon = `${BLINKS_S3_DRIFT_PUBLIC_BUCKET}/deposit-${depositToken}.webp`;
+
+	try {
+		const response = await fetch(icon);
+		if (!response.ok) {
+			icon = GENERIC_BLINK_IMAGE;
+		}
+	} catch (err) {
+		icon = GENERIC_BLINK_IMAGE;
+	}
 
 	const label = '';
 	const title = `Deposit ${depositToken} into Drift`;
