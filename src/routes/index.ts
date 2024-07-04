@@ -34,8 +34,13 @@ const HOST =
 	process.env.NODE_ENV === 'development'
 		? `http://localhost:${PORT}`
 		: process.env.URL;
+const DRIFT_MAIN_APP_URL = 'https://app.drift.trade';
 
 const router = express.Router();
+
+router.get('/', (_req: Request, res: Response) => {
+	res.redirect(DRIFT_MAIN_APP_URL);
+});
 
 router.get('/blinks/deposit', (req: Request, res: Response) => {
 	const depositToken = (req.query.token ?? 'USDC') as string;
@@ -218,7 +223,7 @@ router.post('/transactions/deposit', async (req: Request, res: Response) => {
 
 	const actionResponse: ActionsSpecPostResponse = {
 		transaction: uint8ArrayToBase64(txn.serialize()),
-		message: `Successfully deposited ${token}. Visit https://app.drift.trade to view your deposit.`,
+		message: `Successfully deposited ${token}. Visit ${DRIFT_MAIN_APP_URL} to view your deposit.`,
 	};
 
 	driftClient.unsubscribe();
