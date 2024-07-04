@@ -1,4 +1,5 @@
 import './config.js';
+import { PostHogClient } from './posthog.js';
 
 import express, { Express } from 'express';
 import morgan from 'morgan';
@@ -27,4 +28,26 @@ app.get('/startup', checkConnections);
 
 app.listen(PORT, () => {
 	console.log(`[server]: Server is running at http://localhost:${PORT}`);
+});
+
+[
+	'SIGINT',
+	'SIGTERM',
+	'SIGQUIT',
+	'uncaughtException',
+	'unhandledRejection',
+].forEach((signal) => {
+	process.on(signal, (e) => {
+		console.log('Process forced shutdown:', signal, e);
+		// shutdown PostHog client
+		PostHogClient.shutdown()
+			.then(() => {
+				console.log('PostHog shut down successfully.');
+				process.exit(0);
+			})
+			.catch((error) => {
+				console.error('Error during PostHog shutdown:', error);
+				process.exit(1);
+			});
+	});
 });

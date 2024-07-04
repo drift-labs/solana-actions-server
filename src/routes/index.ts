@@ -20,11 +20,15 @@ import {
 	BulkAccountLoader,
 } from '@drift-labs/sdk';
 import {
+	clamp,
 	createThrowawayIWallet,
+	getHeliusPriorityFees,
 	getReferrerInfo,
 	getTokenAddressForDepositAndWithdraw,
 	uint8ArrayToBase64,
 } from '../utils/index.js';
+import { PostHogClient } from '../posthog.js';
+import { POSTHOG_EVENTS } from '../constants/posthog.js';
 
 const BLINKS_S3_DRIFT_PUBLIC_BUCKET = process.env.BUCKET ?? '';
 const ENDPOINT = process.env.ENDPOINT ?? '';
@@ -38,13 +42,28 @@ const DRIFT_MAIN_APP_URL = 'https://app.drift.trade';
 
 const router = express.Router();
 
-router.get('/', (_req: Request, res: Response) => {
+router.get('/', (req: Request, res: Response) => {
+	PostHogClient.capture({
+		distinctId: req.ip,
+		event: POSTHOG_EVENTS.redirectFromActionsServerToMainApp,
+	});
+
 	res.redirect(DRIFT_MAIN_APP_URL);
 });
 
 router.get('/blinks/deposit', (req: Request, res: Response) => {
 	const depositToken = (req.query.token ?? 'USDC') as string;
 	const referralCode = (req.query.ref ?? undefined) as string;
+
+	PostHogClient.capture({
+		distinctId: req.ip,
+		event: POSTHOG_EVENTS.depositBlinkView,
+		properties: {
+			blinkQueryParams: req.query,
+			depositToken,
+			referralCode,
+		},
+	});
 
 	const spotMarketConfig = SpotMarkets[DRIFT_ENV].find(
 		(market) => market.symbol === depositToken
@@ -110,6 +129,18 @@ router.post('/transactions/deposit', async (req: Request, res: Response) => {
 		return res.status(400).json({ message } as ActionsSpecErrorResponse);
 	};
 
+	PostHogClient.capture({
+		distinctId: req.ip,
+		event: POSTHOG_EVENTS.createDepositTransaction,
+		properties: {
+			txnQueryParams: req.query,
+			authority: req.body.account,
+			amount: req.query.amount,
+			token: req.query.token,
+			referralCode: req.query.ref,
+		},
+	});
+
 	let authority: PublicKey | undefined;
 
 	try {
@@ -138,6 +169,8 @@ router.post('/transactions/deposit', async (req: Request, res: Response) => {
 	const amountBn = new BN(
 		+amountString * depositSpotMarketConfig.precision.toNumber()
 	);
+
+	const priorityFeePromise = getHeliusPriorityFees();
 	const { oracleInfos, perpMarketIndexes, spotMarketIndexes } =
 		getMarketsAndOraclesForSubscription(DRIFT_ENV);
 
@@ -186,6 +219,12 @@ router.post('/transactions/deposit', async (req: Request, res: Response) => {
 
 	let txn: Transaction | VersionedTransaction;
 
+	const computeUnitsPrice = clamp(
+		Math.round(await priorityFeePromise),
+		50_000,
+		1_000_000
+	);
+
 	if (userAccounts.length === 0) {
 		// if don't have Drift account, create initialize and deposit transaction
 		[txn] = await driftClient.createInitializeUserAccountAndDepositCollateral(
@@ -199,7 +238,7 @@ router.post('/transactions/deposit', async (req: Request, res: Response) => {
 			undefined,
 			{
 				computeUnits: 200_000,
-				computeUnitsPrice: 100_000,
+				computeUnitsPrice: computeUnitsPrice,
 			}
 		);
 	} else {
@@ -216,7 +255,7 @@ router.post('/transactions/deposit', async (req: Request, res: Response) => {
 			false,
 			{
 				computeUnits: 100_000,
-				computeUnitsPrice: 100_000,
+				computeUnitsPrice: computeUnitsPrice,
 			}
 		);
 	}
