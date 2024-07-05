@@ -74,7 +74,7 @@ router.get('/blinks/deposit', async (req: Request, res: Response) => {
 		return res.status(400).json({ message: 'Invalid token' });
 	}
 
-	let icon = `${BLINKS_S3_DRIFT_PUBLIC_BUCKET}/deposit-${depositToken}.webp`;
+	let icon = `${BLINKS_S3_DRIFT_PUBLIC_BUCKET}/deposit-${depositToken.toLowerCase()}.webp`;
 
 	try {
 		const response = await fetch(icon);
