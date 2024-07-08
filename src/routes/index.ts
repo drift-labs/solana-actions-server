@@ -93,6 +93,7 @@ router.get('/blinks/deposit', async (req: Request, res: Response) => {
 
 	const queryParamsObject: Record<string, string> = {
 		token: depositToken,
+		...req.query,
 	};
 
 	if (referralCode) {
@@ -133,15 +134,33 @@ router.post('/transactions/deposit', async (req: Request, res: Response) => {
 		return res.status(400).json({ message } as ActionsSpecErrorResponse);
 	};
 
+	const utmObject = req.query.utm_source
+		? {
+				utm_source: req.query.utm_source,
+				utm_medium: req.query.utm_medium,
+				utm_campaign: req.query.utm_campaign,
+				utm_term: req.query.utm_term,
+				utm_content: req.query.utm_content,
+		  }
+		: {};
+
+	const restOfQueryParams = { ...req.query };
+	delete restOfQueryParams.utm_source;
+	delete restOfQueryParams.utm_medium;
+	delete restOfQueryParams.utm_campaign;
+	delete restOfQueryParams.utm_term;
+	delete restOfQueryParams.utm_content;
+
 	PostHogClient.capture({
 		distinctId: req.ip,
 		event: POSTHOG_EVENTS.createDepositTransaction,
 		properties: {
-			txnQueryParams: req.query,
+			txnQueryParams: restOfQueryParams,
 			authority: req.body.account,
 			amount: req.query.amount,
 			token: req.query.token,
 			referralCode: req.query.ref,
+			...utmObject,
 		},
 	});
 
