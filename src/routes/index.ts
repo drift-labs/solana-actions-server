@@ -20,7 +20,6 @@ import {
 	BulkAccountLoader,
 	calculateDepositRate,
 	convertToNumber,
-	PERCENTAGE_PRECISION,
 } from '@drift-labs/sdk';
 import {
 	clamp,
@@ -114,15 +113,14 @@ router.get('/blinks/deposit', async (req: Request, res: Response) => {
 			accountLoader: bulkAccountLoader,
 		},
 	});
+	await driftClient.subscribe();
 
 	let title = `Deposit ${depositToken} into Drift`;	
 
 	const spotMarket = driftClient.getSpotMarketAccount(spotMarketConfig.marketIndex);	
 	
 	if (spotMarket) {
-		const apr = convertToNumber(calculateDepositRate(spotMarket), new BN(PERCENTAGE_PRECISION));
-
-		console.log('APR:', apr);
+		const apr = convertToNumber(calculateDepositRate(spotMarket), new BN(10000));
 
 		if (apr >= 0.1) {
 			title = `Deposit ${depositToken} into Drift and earn ${apr}% APR`;
