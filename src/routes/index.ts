@@ -18,6 +18,9 @@ import {
 	DRIFT_PROGRAM_ID,
 	DriftClient,
 	BulkAccountLoader,
+	calculateDepositRate,
+	convertToNumber,
+	PERCENTAGE_PRECISION,
 } from '@drift-labs/sdk';
 import {
 	clamp,
@@ -85,8 +88,48 @@ router.get('/blinks/deposit', async (req: Request, res: Response) => {
 		icon = GENERIC_BLINK_IMAGE;
 	}
 
+	const { oracleInfos, perpMarketIndexes, spotMarketIndexes } =
+		getMarketsAndOraclesForSubscription(DRIFT_ENV);
+
+	const connection = new Connection(ENDPOINT, {
+		commitment: 'confirmed',
+	});
+
+	const bulkAccountLoader = new BulkAccountLoader(connection, 'confirmed', 0);
+
+	const walletWrapper = createThrowawayIWallet();
+
+	const driftClient = new DriftClient({
+		connection: connection,
+		wallet: walletWrapper,
+		programID: new PublicKey(DRIFT_PROGRAM_ID),
+		env: DRIFT_ENV,
+		txVersion: 0,
+		userStats: false,
+		perpMarketIndexes: perpMarketIndexes,
+		spotMarketIndexes: spotMarketIndexes,
+		oracleInfos: oracleInfos,
+		accountSubscription: {
+			type: 'polling',
+			accountLoader: bulkAccountLoader,
+		},
+	});
+
+	let title = `Deposit ${depositToken} into Drift`;	
+
+	const spotMarket = driftClient.getSpotMarketAccount(spotMarketConfig.marketIndex);	
+	
+	if (spotMarket) {
+		const apr = convertToNumber(calculateDepositRate(spotMarket), new BN(PERCENTAGE_PRECISION));
+
+		console.log('APR:', apr);
+
+		if (apr >= 0.1) {
+			title = `Deposit ${depositToken} into Drift and earn ${apr}% APR`;
+		}
+	}
+
 	const label = '';
-	const title = `Deposit ${depositToken} into Drift`;
 	const description = '';
 	const disabled = false;
 	const amountQuery = 'depositAmount';
