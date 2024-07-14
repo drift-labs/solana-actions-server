@@ -157,7 +157,7 @@ router.get('/blinks/deposit', async (req: Request, res: Response) => {
 			},
 		],
 	};
-
+	
 	const response: ActionsSpecGetResponse = {
 		icon,
 		label,
@@ -166,6 +166,8 @@ router.get('/blinks/deposit', async (req: Request, res: Response) => {
 		disabled,
 		links,
 	};
+	
+	driftClient.unsubscribe();
 
 	return res.json(response);
 });
