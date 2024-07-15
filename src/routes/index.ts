@@ -1,9 +1,9 @@
 import express, { Request, Response } from 'express';
-import {
-	ActionsSpecGetResponse,
-	ActionsSpecPostResponse,
-	ActionsSpecErrorResponse,
-} from '../types/solana-actions';
+import { 
+	ActionError,
+	ActionGetResponse,
+	ActionPostResponse,
+} from '@solana/actions';
 import {
 	Connection,
 	PublicKey,
@@ -150,7 +150,7 @@ router.get('/blinks/deposit', async (req: Request, res: Response) => {
 
 	const queryParams = new URLSearchParams(queryParamsObject).toString();
 
-	const links: ActionsSpecGetResponse['links'] = {
+	const links: ActionGetResponse['links'] = {
 		actions: [
 			{
 				href: `${HOST}/transactions/deposit?${queryParams}&amount={${amountQuery}}`,
@@ -164,8 +164,8 @@ router.get('/blinks/deposit', async (req: Request, res: Response) => {
 			},
 		],
 	};
-
-	const response: ActionsSpecGetResponse = {
+	
+	const response: ActionGetResponse = {
 		icon,
 		label,
 		title,
@@ -181,7 +181,7 @@ router.get('/blinks/deposit', async (req: Request, res: Response) => {
 
 router.post('/transactions/deposit', async (req: Request, res: Response) => {
 	const returnErrorResponse = (message: string) => {
-		return res.status(400).json({ message } as ActionsSpecErrorResponse);
+		return res.status(400).json({ message } as ActionError);
 	};
 
 	const utmObject = req.query.utm_source
@@ -333,7 +333,7 @@ router.post('/transactions/deposit', async (req: Request, res: Response) => {
 		);
 	}
 
-	const actionResponse: ActionsSpecPostResponse = {
+	const actionResponse: ActionPostResponse = {
 		transaction: uint8ArrayToBase64(txn.serialize()),
 		message: `Successfully deposited ${token}. Visit ${DRIFT_MAIN_APP_URL} to view your deposit.`,
 	};
