@@ -172,7 +172,7 @@ router.get('/elections', async (req: Request, res: Response) => {
 	// posthog
 	PostHogClient.capture({
 		distinctId: req.ip,
-		event: POSTHOG_EVENTS.depositBlinkView,
+		event: POSTHOG_EVENTS.electionsBlinkView,
 		properties: {
 			blinkQueryParams: req.query,
 		},
