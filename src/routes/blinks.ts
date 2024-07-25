@@ -186,7 +186,7 @@ router.get('/elections', async (req: Request, res: Response) => {
 
 	const transactionsRoute = `${HOST}/transactions/elections`;
 	const title = 'Election Center';
-	const label = '';
+	let label = '';
 	const description = '';
 	const disabled = false;
 
@@ -216,6 +216,7 @@ router.get('/elections', async (req: Request, res: Response) => {
 	}
 
 	// handle valid tokens
+	label = `Swap for ${electionToken.toUpperCase()} now`;
 	const icon = `${BLINKS_S3_DRIFT_PUBLIC_BUCKET}/elections-${electionToken.toLowerCase()}.webp`;
 	const amountQueryKey = 'depositAmount';
 
