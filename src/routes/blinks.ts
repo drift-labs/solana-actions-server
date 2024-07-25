@@ -181,7 +181,7 @@ router.get('/elections', async (req: Request, res: Response) => {
 	const electionToken = req.query.token as string;
 
 	const isValidToken = SUPPORTED_ELECTION_TOKENS.some(
-		(token) => token.token === electionToken
+		(token) => token.token.toLowerCase() === electionToken.toLowerCase()
 	);
 
 	const transactionsRoute = `${HOST}/transactions/elections`;
