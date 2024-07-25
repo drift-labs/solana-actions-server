@@ -15,6 +15,11 @@ import {
 import { createThrowawayIWallet } from '../utils/index.js';
 import { PostHogClient } from '../posthog.js';
 import { POSTHOG_EVENTS } from '../constants/posthog.js';
+import {
+	ELECTIONS_CTA_SOL_AMOUNT,
+	ELECTIONS_GENERIC_CTA,
+	SUPPORTED_ELECTION_TOKENS,
+} from '../constants/elections.js';
 
 const router = express.Router();
 
@@ -159,6 +164,94 @@ router.get('/deposit', async (req: Request, res: Response) => {
 	};
 
 	driftClient.unsubscribe();
+
+	return res.json(response);
+});
+
+router.get('/elections', async (req: Request, res: Response) => {
+	// posthog
+	PostHogClient.capture({
+		distinctId: req.ip,
+		event: POSTHOG_EVENTS.depositBlinkView,
+		properties: {
+			blinkQueryParams: req.query,
+		},
+	});
+
+	const electionToken = req.query.token as string;
+
+	const isValidToken = SUPPORTED_ELECTION_TOKENS.some(
+		(token) => token.token === electionToken
+	);
+
+	const transactionsRoute = `${HOST}/transactions/elections`;
+
+	// handle no/invalid token
+	if (!electionToken || !isValidToken) {
+		const icon = `${BLINKS_S3_DRIFT_PUBLIC_BUCKET}/deposit-usdc.webp`; // TODO: UPDATE
+		const title = 'Elections Center';
+		const label = '';
+		const description = '';
+		const disabled = false;
+
+		const ctaActionButtons = ELECTIONS_GENERIC_CTA.map((config) => {
+			return {
+				href: `${transactionsRoute}?token=${config.token}&amount=${config.solAmount}`,
+				label: `Buy ${config.solAmount} SOL / ${config.token}`,
+			};
+		});
+
+		const response: ActionsSpecGetResponse = {
+			icon,
+			label,
+			title,
+			description,
+			disabled,
+			links: {
+				actions: ctaActionButtons,
+			},
+		};
+
+		return res.json(response);
+	}
+
+	// handle valid tokens
+	const icon = `${BLINKS_S3_DRIFT_PUBLIC_BUCKET}/deposit-usdc.webp`; // TODO: UPDATE
+	const title = 'Elections Center';
+	const label = '';
+	const description = `Swap for ${electionToken} now`;
+	const disabled = false;
+	const amountQueryKey = 'depositAmount';
+
+	const ctaActionButtons = ELECTIONS_CTA_SOL_AMOUNT.map((solAmount) => {
+		return {
+			href: `${transactionsRoute}?token=${electionToken}&amount=${solAmount}`,
+			label: `Buy with ${solAmount} SOL`,
+		};
+	});
+
+	const response: ActionsSpecGetResponse = {
+		icon,
+		label,
+		title,
+		description,
+		disabled,
+		links: {
+			actions: [
+				...ctaActionButtons,
+				{
+					href: `${transactionsRoute}?token=${electionToken}&amount={${amountQueryKey}}`,
+					label: `Buy ${electionToken}`,
+					parameters: [
+						{
+							name: amountQueryKey,
+							label: `SOL amount`,
+						},
+					],
+				},
+			],
+		},
+	};
 
 	return res.json(response);
 });
