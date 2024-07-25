@@ -10,6 +10,8 @@ import {
 import { getAssociatedTokenAddress } from '@solana/spl-token';
 import { Keypair } from '@solana/web3.js';
 import { ActionError } from '@solana/actions';
+import { Response } from 'express';
+
 export const getTokenAddressForDepositAndWithdraw = async (
 	spotMarket: SpotMarketConfig,
 	authority: PublicKey
@@ -122,7 +124,6 @@ export const clamp = (value: number, min: number, max: number): number => {
 	return Math.max(min, Math.min(max, value));
 };
 
-export const returnErrorResponse = (res: Express.Response, message: string) => {
-	// @ts-ignore
+export const returnErrorResponse = (res: Response, message: string) => {
 	return res.status(400).json({ message } as ActionError);
 };
