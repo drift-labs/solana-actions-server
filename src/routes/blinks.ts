@@ -188,7 +188,7 @@ router.get('/elections', async (req: Request, res: Response) => {
 
 	// handle no/invalid token
 	if (!electionToken || !isValidToken) {
-		const icon = `${BLINKS_S3_DRIFT_PUBLIC_BUCKET}/deposit-usdc.webp`; // TODO: UPDATE
+		const icon = `${BLINKS_S3_DRIFT_PUBLIC_BUCKET}/elections-generic.webp`;
 		const title = 'Elections Center';
 		const label = '';
 		const description = '';
@@ -216,7 +216,7 @@ router.get('/elections', async (req: Request, res: Response) => {
 	}
 
 	// handle valid tokens
-	const icon = `${BLINKS_S3_DRIFT_PUBLIC_BUCKET}/deposit-usdc.webp`; // TODO: UPDATE
+	const icon = `${BLINKS_S3_DRIFT_PUBLIC_BUCKET}/elections-${electionToken.toLowerCase()}.webp`;
 	const title = 'Elections Center';
 	const label = '';
 	const description = `Swap for ${electionToken} now`;
