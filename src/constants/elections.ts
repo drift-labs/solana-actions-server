@@ -12,7 +12,7 @@ export const SUPPORTED_ELECTION_TOKENS = [
 	},
 ];
 export const ELECTIONS_GENERIC_CTA = SUPPORTED_ELECTION_TOKENS.map((token) => {
-	return ELECTIONS_CTA_SOL_AMOUNT.map((solAmount) => {
+	return [0.1].map((solAmount) => {
 		return {
 			token: token.token,
 			solAmount,

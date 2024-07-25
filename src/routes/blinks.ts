@@ -181,18 +181,18 @@ router.get('/elections', async (req: Request, res: Response) => {
 	const electionToken = req.query.token as string;
 
 	const isValidToken = SUPPORTED_ELECTION_TOKENS.some(
-		(token) => token.token.toLowerCase() === electionToken.toLowerCase()
+		(token) => token.token.toLowerCase() === electionToken?.toLowerCase()
 	);
 
 	const transactionsRoute = `${HOST}/transactions/elections`;
+	const title = 'Election Center';
+	const label = '';
+	const description = '';
+	const disabled = false;
 
 	// handle no/invalid token
 	if (!electionToken || !isValidToken) {
 		const icon = `${BLINKS_S3_DRIFT_PUBLIC_BUCKET}/elections-generic.webp`;
-		const title = 'Elections Center';
-		const label = '';
-		const description = '';
-		const disabled = false;
 
 		const ctaActionButtons = ELECTIONS_GENERIC_CTA.map((config) => {
 			return {
@@ -217,10 +217,6 @@ router.get('/elections', async (req: Request, res: Response) => {
 
 	// handle valid tokens
 	const icon = `${BLINKS_S3_DRIFT_PUBLIC_BUCKET}/elections-${electionToken.toLowerCase()}.webp`;
-	const title = 'Elections Center';
-	const label = '';
-	const description = `Swap for ${electionToken} now`;
-	const disabled = false;
 	const amountQueryKey = 'depositAmount';
 
 	const ctaActionButtons = ELECTIONS_CTA_SOL_AMOUNT.map((solAmount) => {
