@@ -1,5 +1,5 @@
 import express, { Request, Response } from 'express';
-import { ActionsSpecPostResponse } from '../types/solana-actions';
+import { ActionPostResponse } from '@solana/actions';
 import {
 	Connection,
 	PublicKey,
@@ -189,7 +189,7 @@ router.post('/deposit', async (req: Request, res: Response) => {
 		);
 	}
 
-	const actionResponse: ActionsSpecPostResponse = {
+	const actionResponse: ActionPostResponse = {
 		transaction: uint8ArrayToBase64(txn.serialize()),
 		message: `Successfully deposited ${token}. Visit ${DRIFT_MAIN_APP_URL} to view your deposit.`,
 	};
@@ -280,7 +280,7 @@ router.post('/elections', async (req: Request, res: Response) => {
 		slippageBps: quote.slippageBps,
 	});
 
-	const actionResponse: ActionsSpecPostResponse = {
+	const actionResponse: ActionPostResponse = {
 		transaction: uint8ArrayToBase64(transaction.serialize()),
 		message: `Successfully swapped ${amount} ${token}!`,
 	};

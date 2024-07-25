@@ -9,8 +9,7 @@ import {
 } from '@drift-labs/sdk';
 import { getAssociatedTokenAddress } from '@solana/spl-token';
 import { Keypair } from '@solana/web3.js';
-import { ActionsSpecErrorResponse } from 'src/types/solana-actions';
-
+import { ActionError } from '@solana/actions';
 export const getTokenAddressForDepositAndWithdraw = async (
 	spotMarket: SpotMarketConfig,
 	authority: PublicKey
@@ -125,5 +124,5 @@ export const clamp = (value: number, min: number, max: number): number => {
 
 export const returnErrorResponse = (res: Express.Response, message: string) => {
 	// @ts-ignore
-	return res.status(400).json({ message } as ActionsSpecErrorResponse);
+	return res.status(400).json({ message } as ActionError);
 };

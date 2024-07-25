@@ -1,5 +1,5 @@
 import express, { Request, Response } from 'express';
-import { ActionsSpecGetResponse } from '../types/solana-actions';
+import { ActionGetResponse } from '@solana/actions';
 import { Connection, PublicKey } from '@solana/web3.js';
 import {
 	DriftEnv,
@@ -139,7 +139,7 @@ router.get('/deposit', async (req: Request, res: Response) => {
 
 	const queryParams = new URLSearchParams(queryParamsObject).toString();
 
-	const links: ActionsSpecGetResponse['links'] = {
+	const links: ActionGetResponse['links'] = {
 		actions: [
 			{
 				href: `${HOST}/transactions/deposit?${queryParams}&amount={${amountQuery}}`,
@@ -154,7 +154,7 @@ router.get('/deposit', async (req: Request, res: Response) => {
 		],
 	};
 
-	const response: ActionsSpecGetResponse = {
+	const response: ActionGetResponse = {
 		icon,
 		label,
 		title,
@@ -201,7 +201,7 @@ router.get('/elections', async (req: Request, res: Response) => {
 			};
 		});
 
-		const response: ActionsSpecGetResponse = {
+		const response: ActionGetResponse = {
 			icon,
 			label,
 			title,
@@ -230,7 +230,7 @@ router.get('/elections', async (req: Request, res: Response) => {
 		};
 	});
 
-	const response: ActionsSpecGetResponse = {
+	const response: ActionGetResponse = {
 		icon,
 		label,
 		title,

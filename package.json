@@ -18,6 +18,7 @@
   "license": "ISC",
   "dependencies": {
     "@drift-labs/sdk": "^2.86.0-beta.0",
+    "@solana/actions": "^1.1.2",
     "@solana/spl-token": "^0.4.7",
     "@solana/web3.js": "^1.94.0",
     "compression": "^1.7.4",
