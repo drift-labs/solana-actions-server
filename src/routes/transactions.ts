@@ -19,6 +19,7 @@ import {
 import {
 	clamp,
 	createThrowawayIWallet,
+	getEnvEndpointFromRequest,
 	getHeliusPriorityFees,
 	getReferrerInfo,
 	getTokenAddressForDepositAndWithdraw,
@@ -35,7 +36,6 @@ import {
 
 const router = express.Router();
 
-const ENDPOINT = process.env.ENDPOINT ?? '';
 const DRIFT_ENV = (process.env.ENV || 'devnet') as DriftEnv;
 const DRIFT_MAIN_APP_URL = 'https://app.drift.trade';
 
@@ -57,18 +57,20 @@ router.post('/deposit', async (req: Request, res: Response) => {
 	delete restOfQueryParams.utm_term;
 	delete restOfQueryParams.utm_content;
 
-	PostHogClient.capture({
-		distinctId: req.ip,
-		event: POSTHOG_EVENTS.createDepositTransaction,
-		properties: {
-			txnQueryParams: restOfQueryParams,
-			authority: req.body.account,
-			amount: req.query.amount,
-			token: req.query.token,
-			referralCode: req.query.ref,
-			...utmObject,
-		},
-	});
+	if (!req.query.noCapture) {
+		PostHogClient.capture({
+			distinctId: req.ip,
+			event: POSTHOG_EVENTS.createDepositTransaction,
+			properties: {
+				txnQueryParams: restOfQueryParams,
+				authority: req.body.account,
+				amount: req.query.amount,
+				token: req.query.token,
+				referralCode: req.query.ref,
+				...utmObject,
+			},
+		});
+	}
 
 	let authority: PublicKey | undefined;
 
@@ -103,7 +105,7 @@ router.post('/deposit', async (req: Request, res: Response) => {
 	const { oracleInfos, perpMarketIndexes, spotMarketIndexes } =
 		getMarketsAndOraclesForSubscription(DRIFT_ENV);
 
-	const connection = new Connection(ENDPOINT, {
+	const connection = new Connection(getEnvEndpointFromRequest(req), {
 		commitment: 'confirmed',
 	});
 
@@ -255,7 +257,7 @@ router.post('/elections', async (req: Request, res: Response) => {
 		return returnErrorResponse(res, 'Invalid amount');
 	}
 
-	const connection = new Connection(ENDPOINT, {
+	const connection = new Connection(getEnvEndpointFromRequest(req), {
 		commitment: 'confirmed',
 	});
 	const jupiterClient = new JupiterClient({

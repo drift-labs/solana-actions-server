@@ -10,7 +10,8 @@ import {
 import { getAssociatedTokenAddress } from '@solana/spl-token';
 import { Keypair } from '@solana/web3.js';
 import { ActionError } from '@solana/actions';
-import { Response } from 'express';
+import { Request, Response } from 'express';
+import { DEVNET_ENDPOINT, ENDPOINT } from '../constants/environment.js';
 
 export const getTokenAddressForDepositAndWithdraw = async (
 	spotMarket: SpotMarketConfig,
@@ -126,4 +127,12 @@ export const clamp = (value: number, min: number, max: number): number => {
 
 export const returnErrorResponse = (res: Response, message: string) => {
 	return res.status(400).json({ message } as ActionError);
+};
+
+export const getEnvEndpointFromRequest = (req: Request): string => {
+	if (req.query.devnet === 'true') {
+		return DEVNET_ENDPOINT;
+	}
+
+	return ENDPOINT;
 };
