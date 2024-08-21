@@ -1,6 +1,8 @@
 import {
+	BulkAccountLoader,
 	DRIFT_PROGRAM_ID,
 	DriftClient,
+	getMarketsAndOraclesForSubscription,
 	IWallet,
 	PublicKey,
 	ReferrerInfo,
@@ -8,10 +10,11 @@ import {
 	WRAPPED_SOL_MINT,
 } from '@drift-labs/sdk';
 import { getAssociatedTokenAddress } from '@solana/spl-token';
-import { Keypair } from '@solana/web3.js';
+import { Connection, Keypair } from '@solana/web3.js';
 import { ActionError } from '@solana/actions';
 import { Request, Response } from 'express';
 import { DEVNET_ENDPOINT, ENDPOINT } from '../constants/environment.js';
+import { DRIFT_ENV } from '../config.js';
 
 export const getTokenAddressForDepositAndWithdraw = async (
 	spotMarket: SpotMarketConfig,
@@ -135,4 +138,36 @@ export const getEnvEndpointFromRequest = (req: Request): string => {
 	}
 
 	return ENDPOINT;
+};
+
+export const createDriftClient = (req: Request, authority?: PublicKey) => {
+	const connection = new Connection(getEnvEndpointFromRequest(req), {
+		commitment: 'confirmed',
+	});
+	const walletWrapper = createThrowawayIWallet();
+	if (authority) {
+		walletWrapper.publicKey = authority;
+	}
+
+	const { oracleInfos, perpMarketIndexes, spotMarketIndexes } =
+		getMarketsAndOraclesForSubscription(DRIFT_ENV);
+	const bulkAccountLoader = new BulkAccountLoader(connection, 'confirmed', 0);
+
+	const driftClient = new DriftClient({
+		connection: connection,
+		wallet: walletWrapper,
+		programID: new PublicKey(DRIFT_PROGRAM_ID),
+		env: DRIFT_ENV,
+		txVersion: 0,
+		userStats: false,
+		perpMarketIndexes: perpMarketIndexes,
+		spotMarketIndexes: spotMarketIndexes,
+		oracleInfos: oracleInfos,
+		accountSubscription: {
+			type: 'polling',
+			accountLoader: bulkAccountLoader,
+		},
+	});
+
+	return { driftClient, connection, accountLoader: bulkAccountLoader };
 };

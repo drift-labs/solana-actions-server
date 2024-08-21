@@ -6,19 +6,10 @@ import {
 	Transaction,
 	VersionedTransaction,
 } from '@solana/web3.js';
-import {
-	BN,
-	DriftEnv,
-	SpotMarkets,
-	getMarketsAndOraclesForSubscription,
-	DRIFT_PROGRAM_ID,
-	DriftClient,
-	BulkAccountLoader,
-	JupiterClient,
-} from '@drift-labs/sdk';
+import { BN, SpotMarkets, JupiterClient } from '@drift-labs/sdk';
 import {
 	clamp,
-	createThrowawayIWallet,
+	createDriftClient,
 	getEnvEndpointFromRequest,
 	getHeliusPriorityFees,
 	getReferrerInfo,
@@ -33,10 +24,10 @@ import {
 	SUPPORTED_ELECTION_TOKENS,
 	SWAP_FROM_TOKEN,
 } from '../constants/elections.js';
+import { DRIFT_ENV } from '../config.js';
 
 const router = express.Router();
 
-const DRIFT_ENV = (process.env.ENV || 'devnet') as DriftEnv;
 const DRIFT_MAIN_APP_URL = 'https://app.drift.trade';
 
 router.post('/deposit', async (req: Request, res: Response) => {
@@ -102,33 +93,8 @@ router.post('/deposit', async (req: Request, res: Response) => {
 	);
 
 	const priorityFeePromise = getHeliusPriorityFees();
-	const { oracleInfos, perpMarketIndexes, spotMarketIndexes } =
-		getMarketsAndOraclesForSubscription(DRIFT_ENV);
 
-	const connection = new Connection(getEnvEndpointFromRequest(req), {
-		commitment: 'confirmed',
-	});
-
-	const bulkAccountLoader = new BulkAccountLoader(connection, 'confirmed', 0);
-
-	const walletWrapper = createThrowawayIWallet();
-
-	walletWrapper.publicKey = authority;
-	const driftClient = new DriftClient({
-		connection: connection,
-		wallet: walletWrapper,
-		programID: new PublicKey(DRIFT_PROGRAM_ID),
-		env: DRIFT_ENV,
-		txVersion: 0,
-		userStats: false,
-		perpMarketIndexes: perpMarketIndexes,
-		spotMarketIndexes: spotMarketIndexes,
-		oracleInfos: oracleInfos,
-		accountSubscription: {
-			type: 'polling',
-			accountLoader: bulkAccountLoader,
-		},
-	});
+	const { driftClient } = createDriftClient(req, authority);
 
 	try {
 		if (!driftClient.isSubscribed) {
