@@ -39,9 +39,11 @@ router.get('/drift', async (req: Request, res: Response) => {
 
 	await ifStakeAccSubscriber.fetch();
 
-	res.json(
-		ifStakeAccSubscriber.insuranceFundStakeAccountAndSlot.data.ifShares.toNumber()
-	);
+	const ifShares =
+		ifStakeAccSubscriber.insuranceFundStakeAccountAndSlot?.data.ifShares.toNumber() ??
+		0;
+
+	res.json(ifShares);
 });
 
 export default router;
