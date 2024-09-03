@@ -10,7 +10,7 @@ import { createDriftClient, returnErrorResponse } from '../utils/index.js';
 
 const router = express.Router();
 
-const REQUIRED_DRIFT_AMOUNT = 1000; // used for Solana Breakpoint car-riding booking requirement
+const REQUIRED_DRIFT_AMOUNT = 5000; // used for Solana Breakpoint car-riding booking requirement
 const DRIFT_SPOT_MARKET_INDEX = 15;
 const driftPrecision =
 	MainnetSpotMarkets[DRIFT_SPOT_MARKET_INDEX].precision.toNumber();
