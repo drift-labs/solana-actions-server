@@ -1,0 +1,67 @@
+name: Build Image And Deploy
+
+on:
+  push:
+    branches: [master]
+
+jobs:
+  build:
+    runs-on: ubicloud
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@master
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_NON_PROD }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_KEY_NON_PROD }}
+          aws-region: ${{ secrets.EKS_NON_PROD_REGION }}
+
+      - name: Log in to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Docker build
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          ECR_REPOSITORY: solana-actions-server
+          IMAGE_TAG: ${{ github.sha }}
+          BRANCH_NAME: ${{ github.ref_name }}
+        run: |
+          docker build \
+            -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG \
+            -t $ECR_REGISTRY/$ECR_REPOSITORY:latest-$BRANCH_NAME \
+            -f ./Dockerfile \
+            .
+          
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest-$BRANCH_NAME
+
+  deploy:
+    runs-on: ubicloud
+    needs: [build]
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@master
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_NON_PROD }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_KEY_NON_PROD }}
+          aws-region: ${{ secrets.EKS_NON_PROD_REGION }}
+
+      - name: Install kubectl
+        uses: azure/setup-kubectl@v3
+        with:
+          version: 'v1.30.0'
+
+      - name: Configure AWS EKS Credentials
+        run: aws eks update-kubeconfig --name ${{ secrets.EKS_NON_PROD_CLUSTER_NAME }} --region ${{ secrets.EKS_NON_PROD_REGION }} --role-arn ${{ secrets.EKS_NON_PROD_DEPLOY_ROLE }}
+
+      - name: Restart deployment
+        env:
+          BRANCH_NAME: ${{ github.ref_name }}
+        run: |
+          kubectl rollout restart -n $BRANCH_NAME deployment/solana-actions-server-app
